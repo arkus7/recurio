@@ -32,3 +32,54 @@ impl AsRef<str> for ServiceName {
         &self.0
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::domain::ServiceName;
+    use claims::{assert_err, assert_ok};
+
+    #[test]
+    fn a_64_grapheme_long_name_is_valid() {
+        let name = "ё".repeat(64);
+        assert_ok!(ServiceName::parse(name));
+    }
+
+    #[test]
+    fn name_longer_than_64_graphemes_is_invalid() {
+        let name = "ё".repeat(128);
+        assert_err!(ServiceName::parse(name));
+    }
+
+    #[test]
+    fn whitespaces_only_are_rejected() {
+        let name = " ".to_string();
+        assert_err!(ServiceName::parse(name));
+    }
+
+    #[test]
+    fn empty_string_is_rejected() {
+        let name = "".to_string();
+        assert_err!(ServiceName::parse(name));
+    }
+
+    #[test]
+    fn names_containing_an_invalid_character_are_rejected() {
+        for name in &['/', '(', ')', '"', '<', '>', '\\', '{', '}'] {
+            let name = name.to_string();
+            assert_err!(ServiceName::parse(name));
+        }
+    }
+
+    #[test]
+    fn a_valid_name_is_parsed_successfully() {
+        let name = "Disney+".to_string();
+        assert_ok!(ServiceName::parse(name));
+    }
+
+    #[test]
+    fn additional_whitespace_gets_trimmed() {
+        let name = " Netflix ".to_string();
+        let service_name = ServiceName::parse(name).unwrap();
+        assert_eq!(service_name.as_ref(), "Netflix");
+    }
+}
