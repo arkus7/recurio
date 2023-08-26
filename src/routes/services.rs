@@ -1,16 +1,23 @@
-use axum::{response::IntoResponse, routing::get, Json, Router};
+use axum::{extract::State, response::IntoResponse, routing::get, Json, Router};
+use hyper::StatusCode;
 
-use crate::domain::{Service, ServiceName};
+use crate::{
+    domain::{Service, ServiceName},
+    startup::AppState,
+};
 
-pub fn services_router() -> Router {
-    Router::new().route("/", get(services_index))
-}
+#[axum::debug_handler(state = crate::startup::AppState)]
+pub async fn services_index(State(AppState { database }): State<AppState>) -> Json<Vec<Service>> {
+    let test: Result<String, sqlx::Error> = sqlx::query_scalar("select 'hello world from pg'")
+        .fetch_one(&database)
+        .await;
 
-async fn services_index() -> impl IntoResponse {
+    dbg!(&test);
+
     let services = vec![Service {
         id: 1,
         name: ServiceName::parse("Netflix".into()).unwrap(),
-        image_url: None,
+        image_url: test.ok(),
         owner_id: None,
     }];
 
