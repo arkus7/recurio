@@ -1,7 +1,7 @@
 use std::{net::TcpListener, time::Duration};
 
 use axum::{routing::get, Router};
-use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres};
+use sqlx::{postgres::PgPoolOptions, PgPool};
 
 use crate::{
     configuration::{DatabaseSettings, Settings},

@@ -7,7 +7,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use recurio::{
     configuration,
-    startup::{app, Application},
+    startup::{Application},
 };
 
 #[tokio::main]
