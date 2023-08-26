@@ -1,13 +1,21 @@
 use unicode_segmentation::UnicodeSegmentation;
 
+#[derive(Debug, serde::Serialize)]
+pub struct Service {
+    pub id: usize,
+    pub name: ServiceName,
+    pub image_url: Option<String>,
+    pub owner_id: Option<usize>,
+}
+
 pub struct NewService {
-    name: ServiceName,
-    image_url: Option<String>,
+    pub name: ServiceName,
+    pub image_url: Option<String>,
 }
 
 impl NewService {}
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub struct ServiceName(String);
 
 impl ServiceName {
