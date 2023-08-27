@@ -1,5 +1,5 @@
 use axum::{extract::State, Json};
-
+use sqlx::FromRow;
 
 use crate::{
     domain::{Service, ServiceName},
@@ -7,19 +7,13 @@ use crate::{
 };
 
 #[axum::debug_handler(state = crate::startup::AppState)]
-pub async fn services_index(State(AppState { database }): State<AppState>) -> Json<Vec<Service>> {
-    let test: Result<String, sqlx::Error> = sqlx::query_scalar("select 'hello world from pg'")
-        .fetch_one(&database)
-        .await;
+pub async fn services_index(
+    State(AppState { database }): State<AppState>,
+) -> Result<Json<Vec<Service>>, String> {
+    let services = sqlx::query_as!(Service, "SELECT * FROM services")
+        .fetch_all(&database)
+        .await
+        .map_err(|e| e.to_string())?;
 
-    dbg!(&test);
-
-    let services = vec![Service {
-        id: 1,
-        name: ServiceName::parse("Netflix".into()).unwrap(),
-        image_url: test.ok(),
-        owner_id: None,
-    }];
-
-    Json(services)
+    Ok(Json(services))
 }
