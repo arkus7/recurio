@@ -3,6 +3,6 @@ application:
 database:
   host: 127.0.0.1
   port: 5432
-  username: postgres
-  password: password
+  username: recurio
+  password: recurio
   database_name: recurio

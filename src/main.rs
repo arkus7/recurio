@@ -5,10 +5,7 @@ use tower_http::trace::TraceLayer;
 use tracing::info_span;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use recurio::{
-    configuration,
-    startup::{Application},
-};
+use recurio::{configuration, startup::Application};
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
