@@ -1,16 +1,16 @@
+use chrono::{DateTime, Utc};
 use unicode_segmentation::UnicodeSegmentation;
+use uuid::Uuid;
 
 #[derive(Debug, serde::Serialize)]
 pub struct Service {
-    pub id: usize,
+    pub id: Uuid,
     pub name: ServiceName,
-    pub image_url: Option<String>,
-    pub owner_id: Option<usize>,
+    pub created_at: DateTime<Utc>,
 }
 
 pub struct NewService {
     pub name: ServiceName,
-    pub image_url: Option<String>,
 }
 
 impl NewService {}
@@ -38,6 +38,15 @@ impl ServiceName {
 impl AsRef<str> for ServiceName {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+// FIXME: without implementing From<String>, sqlx has problem with mapping DB results
+// Current approach allows to create `ServiceName` without using `ServiceName::parse` function
+// via `String::new("   ").into::<ServiceName>()` which might cause some issues (no validation)
+impl From<String> for ServiceName {
+    fn from(value: String) -> Self {
+        Self(value)
     }
 }
 
@@ -89,5 +98,13 @@ mod tests {
         let name = " Netflix ".to_string();
         let service_name = ServiceName::parse(name).unwrap();
         assert_eq!(service_name.as_ref(), "Netflix");
+    }
+
+    #[test]
+    #[ignore] // Check comment above `impl From<String>`
+    fn from_string() {
+        let name = "   ".to_string();
+        let service_name = Into::<ServiceName>::into(name.clone());
+        assert_ne!(service_name.as_ref(), name.as_str());
     }
 }
