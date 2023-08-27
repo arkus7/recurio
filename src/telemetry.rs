@@ -1,13 +1,10 @@
 use axum::{body::BoxBody, extract::ConnectInfo, response::Response};
 use hyper::{Body, Request};
 use std::{net::SocketAddr, time::Duration};
-use tower_http::{
-    classify::{ServerErrorsAsFailures, SharedClassifier},
-    trace::TraceLayer,
-};
-use tracing::{subscriber::set_global_default, Span, Subscriber};
-use tracing_log::LogTracer;
-use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter, Registry};
+
+use tracing::{Span, Subscriber};
+
+use tracing_subscriber::{EnvFilter};
 use uuid::Uuid;
 
 pub fn init_subscriber(env_filter: String) {
