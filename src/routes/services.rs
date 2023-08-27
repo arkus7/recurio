@@ -1,10 +1,6 @@
 use axum::{extract::State, Json};
-use sqlx::FromRow;
 
-use crate::{
-    domain::{Service, ServiceName},
-    startup::AppState,
-};
+use crate::{domain::Service, startup::AppState};
 
 #[axum::debug_handler(state = crate::startup::AppState)]
 pub async fn services_index(
