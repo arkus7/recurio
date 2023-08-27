@@ -1,6 +1,6 @@
 use axum::{extract::State, Json};
 use sqlx::PgPool;
-use tracing::{event, Level};
+
 
 use crate::{domain::Service, startup::AppState};
 

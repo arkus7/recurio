@@ -1,10 +1,10 @@
 use std::net::SocketAddr;
 
-use axum::{extract::MatchedPath, http::Request, Router};
+use axum::{Router};
 use tower_http::trace::TraceLayer;
-use tracing::info_span;
-use tracing_log::LogTracer;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+
+
 
 use recurio::{configuration, startup::Application, telemetry};
 
