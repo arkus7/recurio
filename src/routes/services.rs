@@ -1,7 +1,6 @@
 use axum::{extract::State, Json};
 use sqlx::PgPool;
 
-
 use crate::{domain::Service, startup::AppState};
 
 #[tracing::instrument(name = "services index", skip_all)]
@@ -16,7 +15,6 @@ pub async fn services_index(
 
 #[tracing::instrument(name = "Fetching all services", skip_all)]
 async fn fetch_all_services(database: PgPool) -> Result<Vec<Service>, String> {
-    tracing::debug!("Loading all services");
     sqlx::query_as!(Service, "SELECT * FROM services")
         .fetch_all(&database)
         .await
