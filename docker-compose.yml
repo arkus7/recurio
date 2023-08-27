@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    ports:
+      - "5469:5432"
+    volumes:
+      - recurio-postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: recurio
+      POSTGRES_USER: recurio
+      POSTGRES_PASSWORD: recurio
+
+volumes:
+  recurio-postgres-data:
