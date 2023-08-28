@@ -33,7 +33,7 @@ pub async fn services_index(
     Ok(Json(services))
 }
 
-#[tracing::instrument(name = "Create service", skip_all, fields(body = ?input))]
+#[tracing::instrument(name = "Create service", skip_all, fields(service_name = %input.name))]
 #[axum::debug_handler(state = crate::startup::AppState)]
 pub async fn create_service(
     State(AppState { database }): State<AppState>,
