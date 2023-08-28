@@ -13,8 +13,6 @@ pub struct NewService {
     pub name: ServiceName,
 }
 
-impl NewService {}
-
 #[derive(Debug, serde::Serialize)]
 pub struct ServiceName(String);
 
