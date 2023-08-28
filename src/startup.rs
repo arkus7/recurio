@@ -1,9 +1,6 @@
 use std::{net::TcpListener, time::Duration};
 
-use axum::{
-    routing::{get, post},
-    Router,
-};
+use axum::{routing::get, Router};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
 use crate::{
@@ -60,8 +57,7 @@ pub fn app(state: AppState) -> Router {
 
 fn api_router(state: AppState) -> Router {
     Router::new()
-        .route("/services", get(services_index))
-        .route("/services", post(create_service))
+        .route("/services", get(services_index).post(create_service))
         .with_state(state)
 }
 
