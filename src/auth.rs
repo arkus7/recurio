@@ -2,9 +2,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::async_trait;
-use axum_login::axum_sessions::async_session::{Session, SessionStore};
+use axum_login::axum_sessions::async_session::{MemoryStore, Session, SessionStore};
+use axum_login::PostgresStore;
 
-use axum_login::{axum_sessions::SessionLayer, AuthLayer, RequireAuthorizationLayer, UserStore};
+use axum_login::{
+    axum_sessions::SessionLayer as AxumSessionLayer, AuthLayer as AxumAuthLayer,
+    RequireAuthorizationLayer, UserStore,
+};
 use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use tokio::sync::RwLock;
@@ -15,26 +19,28 @@ use crate::configuration::AuthSettings;
 use crate::domain::{User, UserRole};
 
 pub(crate) type AuthContext =
-    axum_login::extractors::AuthContext<uuid::Uuid, User, DatabaseUserStore, UserRole>;
+    axum_login::extractors::AuthContext<uuid::Uuid, User, AuthUserStore, UserRole>;
 
 pub(crate) type RequireAuth = RequireAuthorizationLayer<uuid::Uuid, User, UserRole>;
+pub(crate) type AuthUserStore = PostgresStore<User, UserRole>;
+pub(crate) type AuthLayer = AxumAuthLayer<AuthUserStore, Uuid, User, UserRole>;
+pub(crate) type SessionLayer = AxumSessionLayer<MemoryStore>;
 
 pub(crate) fn setup_auth(
     db_pool: PgPool,
     configuration: &AuthSettings,
-) -> (
-    AuthLayer<DatabaseUserStore, Uuid, User, UserRole>,
-    SessionLayer<DatabaseUserStore>,
-) {
-    let user_store = DatabaseUserStore::new(db_pool.clone());
+) -> (AuthLayer, SessionLayer) {
+    // let user_store = DatabaseUserStore::new(db_pool.clone());
+    let user_store = PostgresStore::new(db_pool.clone());
+    let session_store = MemoryStore::new();
     let secret = configuration
         .session_secret
         .expose_secret()
         .as_str()
         .as_bytes();
-    let auth_layer = AuthLayer::new(user_store.clone(), secret);
+    let auth_layer = AuthLayer::new(user_store, secret);
 
-    let session_layer = SessionLayer::new(user_store, secret);
+    let session_layer = SessionLayer::new(session_store, secret).with_cookie_name("recurio.sid");
 
     (auth_layer, session_layer)
 }
@@ -86,7 +92,7 @@ impl SessionStore for DatabaseUserStore {
         cookie_value: String,
     ) -> Result<Option<Session>, axum_login::axum_sessions::async_session::Error> {
         debug!("load_session, cookie value: {}", cookie_value);
-        dbg!(&self.session_store);
+        dbg!("session_store", &self.session_store);
         let id = Session::id_from_cookie_value(&cookie_value)?;
         debug!("cookie ID: {id}");
         Ok(self
@@ -115,13 +121,14 @@ impl SessionStore for DatabaseUserStore {
         session: Session,
     ) -> Result<Option<String>, axum_login::axum_sessions::async_session::Error> {
         debug!("store_session, session value: {:?}", session);
-        dbg!(&self.session_store);
+        dbg!("session_store before store", &self.session_store);
 
         self.session_store
             .write()
             .await
             .insert(session.id().to_string(), session.clone());
 
+        dbg!("session_store after store", &self.session_store);
         session.reset_data_changed();
         Ok(session.into_cookie_value())
     }
@@ -131,8 +138,9 @@ impl SessionStore for DatabaseUserStore {
         &self,
         session: Session,
     ) -> Result<(), axum_login::axum_sessions::async_session::Error> {
-        debug!("destroy_session, session value: {:?}", session);
-        dbg!(&session);
+        debug!("destroy_session");
+        dbg!("session to destroy", &session);
+        self.session_store.write().await.remove(session.id());
         Ok(())
     }
 

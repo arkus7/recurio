@@ -8,7 +8,9 @@ edition = "2021"
 [dependencies]
 async-trait = "0.1.73"
 axum = { version = "0.6.20", features = ["tracing", "macros"] }
-axum-login = { version = "0.6.0", features = ["sqlx", "postgres"] }
+# axum-login = { version = "0.6.0", features = ["sqlx", "postgres"] }
+# unreleased with support for sqlx 0.7
+axum-login = { git = "https://github.com/maxcountryman/axum-login", branch = "main", features = ["sqlx", "postgres"] }
 chrono = { version = "0.4.26", features = ["serde"] }
 config = "0.13.3"
 hyper = { version = "0.14.27", features = ["full"] }

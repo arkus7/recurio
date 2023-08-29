@@ -1,4 +1,3 @@
-
 use std::{net::TcpListener, time::Duration};
 
 use axum::{
@@ -8,7 +7,7 @@ use axum::{
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
 use crate::{
-    auth::{setup_auth, RequireAuth},
+    auth::{setup_auth, AuthLayer, RequireAuth, SessionLayer},
     configuration::{AuthSettings, DatabaseSettings, Settings},
     routes::{create_service, health_check, login_handler, services_index},
 };
