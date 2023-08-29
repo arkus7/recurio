@@ -17,7 +17,6 @@ pub fn init_subscriber(env_filter: String) {
     tracing_subscriber::fmt()
         .with_env_filter(env_filter)
         .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-        .with_target(false)
         .init();
 }
 
