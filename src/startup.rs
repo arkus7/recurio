@@ -1,4 +1,4 @@
-use axum_login::SqlxStore;
+
 use std::{net::TcpListener, time::Duration};
 
 use axum::{
@@ -10,7 +10,6 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 use crate::{
     auth::{setup_auth, RequireAuth},
     configuration::{AuthSettings, DatabaseSettings, Settings},
-    domain::UserRole,
     routes::{create_service, health_check, login_handler, services_index},
 };
 

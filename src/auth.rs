@@ -3,11 +3,8 @@ use std::sync::Arc;
 
 use axum::async_trait;
 use axum_login::axum_sessions::async_session::{Session, SessionStore};
-use axum_login::memory_store::MemoryStore;
-use axum_login::{
-    axum_sessions::async_session::CookieStore, axum_sessions::SessionLayer, AuthLayer,
-    PostgresStore, RequireAuthorizationLayer, UserStore,
-};
+
+use axum_login::{axum_sessions::SessionLayer, AuthLayer, RequireAuthorizationLayer, UserStore};
 use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use tokio::sync::RwLock;
@@ -67,7 +64,7 @@ impl UserStore<uuid::Uuid, UserRole> for DatabaseUserStore {
     async fn load_user(&self, user_id: &uuid::Uuid) -> Result<Option<Self::User>, Self::Error> {
         tracing::debug!("Verifying user with ID {}", user_id);
         let user: Option<User> = sqlx::query_as(&self.query)
-            .bind(&user_id)
+            .bind(user_id)
             .fetch_optional(&self.pool)
             .await?;
 
@@ -98,14 +95,14 @@ impl SessionStore for DatabaseUserStore {
             .await
             .get(&id)
             .cloned()
-            .and_then(|s| {
+            .map(|s| {
                 debug!("before validation, session: {:?}", s);
-                Some(s)
+                s
             })
             .and_then(Session::validate)
-            .and_then(|s| {
+            .map(|s| {
                 debug!("after validation, session: {:?}", s);
-                Some(s)
+                s
             }))
     }
 
