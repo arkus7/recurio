@@ -18,7 +18,7 @@ pub struct User {
 impl User {
     pub(crate) fn verify_password(&self, password: &str) -> bool {
         // FIXME: dummy implementation for testing purposes, use real hash checking
-        return self.password_hash == password;
+        self.password_hash == password
     }
 }
 
