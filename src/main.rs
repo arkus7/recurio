@@ -7,7 +7,7 @@ use recurio::{configuration, startup::Application, telemetry};
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    telemetry::init_subscriber("info".into());
+    telemetry::init_subscriber("debug".into());
 
     let configuration = configuration::get_configuration().expect("Failed to read configuration");
 
