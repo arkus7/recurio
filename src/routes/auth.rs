@@ -1,13 +1,13 @@
-use std::str::FromStr;
+
 
 use axum::{extract::State, Json};
-use axum_login::AuthUser;
+
 use hyper::StatusCode;
 use sqlx::PgPool;
 
 use crate::{
-    auth::{AuthContext, AuthUserStore},
-    domain::{User, UserRole},
+    auth::{AuthContext},
+    domain::{User},
     startup::AppState,
 };
 
