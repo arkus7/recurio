@@ -9,6 +9,7 @@ use sqlx::{
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
+    pub auth: AuthSettings,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -27,6 +28,11 @@ pub struct DatabaseSettings {
     pub host: String,
     pub database_name: String,
     pub require_ssl: bool,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct AuthSettings {
+    pub session_secret: Secret<String>,
 }
 
 impl DatabaseSettings {

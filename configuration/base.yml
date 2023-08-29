@@ -6,3 +6,6 @@ database:
   username: recurio
   password: recurio
   database_name: recurio
+auth:
+  # at least 64 bytes
+  session_secret: 80538b1f929bc71331bf0a19d73223db638fd9e4178cc8746f3fa18c3c52d95755aa7d581cfaa58c04827757ae0b45585190fe950c6c3feafb6f6241e239818c

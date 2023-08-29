@@ -1,11 +1,17 @@
+use axum_login::SqlxStore;
 use std::{net::TcpListener, time::Duration};
 
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
 use crate::{
-    configuration::{DatabaseSettings, Settings},
-    routes::{create_service, health_check, services_index},
+    auth::{setup_auth, RequireAuth},
+    configuration::{AuthSettings, DatabaseSettings, Settings},
+    domain::UserRole,
+    routes::{create_service, health_check, login_handler, services_index},
 };
 
 pub struct Application {
@@ -31,10 +37,10 @@ impl Application {
         let port = listener.local_addr().unwrap().port();
 
         let state = AppState {
-            database: connection_pool,
+            database: connection_pool.clone(),
         };
 
-        let router = app(state);
+        let router = app(state, &configuration.auth);
 
         Ok(Self { port, router })
     }
@@ -48,16 +54,27 @@ impl Application {
     }
 }
 
-pub fn app(state: AppState) -> Router {
+pub fn app(state: AppState, auth_config: &AuthSettings) -> Router {
+    let AppState { database } = state.clone();
+
+    let (auth_layer, session_layer) = setup_auth(database, auth_config);
+
     Router::new()
         .nest("/api", api_router(state))
         .route("/", get(|| async { "Hello, World!" }))
         .route("/health", get(health_check))
+        .layer(auth_layer)
+        .layer(session_layer)
 }
 
 fn api_router(state: AppState) -> Router {
     Router::new()
-        .route("/services", get(services_index).post(create_service))
+        .route("/auth/login", post(login_handler))
+        .route("/services", get(services_index))
+        .route(
+            "/services",
+            post(create_service).layer(RequireAuth::login()),
+        )
         .with_state(state)
 }
 
