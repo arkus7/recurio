@@ -1,11 +1,14 @@
 use std::str::FromStr;
 
-use axum::Json;
+use axum::{extract::State, Json};
+use axum_login::AuthUser;
 use hyper::StatusCode;
+use sqlx::PgPool;
 
 use crate::{
-    auth::AuthContext,
+    auth::{AuthContext, AuthUserStore},
     domain::{User, UserRole},
+    startup::AppState,
 };
 
 #[derive(Debug, serde::Deserialize)]
@@ -14,19 +17,34 @@ pub struct LoginInput {
     pub password: String,
 }
 
+#[axum::debug_handler(state = crate::startup::AppState)]
 pub(crate) async fn login_handler(
+    State(AppState { database }): State<AppState>,
     mut auth: AuthContext,
     Json(input): Json<LoginInput>,
-) -> StatusCode {
-    let user = User {
-        id: uuid::Uuid::from_str("9d2b1174-8f9f-4a12-b136-fb091b61843a").unwrap(),
-        login: input.login,
-        password_hash: input.password,
-        role: UserRole::Admin,
-    };
+) -> Result<Json<User>, StatusCode> {
+    let user = find_user_by_login(&database, &input.login)
+        .await
+        .map_err(|e| {
+            tracing::error!(e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    if !user.verify_password(&input.password) {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
     auth.login(&user).await.unwrap();
 
     dbg!(&auth.current_user);
 
-    StatusCode::OK
+    Ok(Json(user))
+}
+
+async fn find_user_by_login(db_pool: &PgPool, login: &str) -> Result<Option<User>, String> {
+    sqlx::query_as!(User, "SELECT * FROM users WHERE login = $1", login)
+        .fetch_optional(db_pool)
+        .await
+        .map_err(|e| e.to_string())
 }
