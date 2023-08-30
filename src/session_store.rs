@@ -46,6 +46,18 @@ impl PostgresSessionStore {
 
         Ok(count)
     }
+
+    pub async fn cleanup(&self) -> sqlx::Result<()> {
+        sqlx::query(&*format!(
+            "DELETE FROM {table_name} WHERE expires < $1",
+            table_name = self.table_name
+        ))
+        .bind(Utc::now())
+        .execute(&self.database)
+        .await?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -304,6 +316,24 @@ mod tests {
         assert_eq!(3, store.count().await?);
         store.clear_store().await.unwrap();
         assert_eq!(0, store.count().await?);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn clearing_expired_sessions() -> Result {
+        let store = test_store().await;
+        for _ in 0..3i8 {
+            store.store_session(Session::new()).await?;
+        }
+        for i in 0..5u64 {
+            let mut expired_session = Session::new();
+            expired_session.set_expiry(Utc::now() - Duration::from_secs(i));
+            store.store_session(expired_session).await.unwrap();
+        }
+        assert_eq!(8, store.count().await?);
+        store.cleanup().await.unwrap();
+        assert_eq!(3, store.count().await?);
 
         Ok(())
     }
