@@ -10,21 +10,28 @@ use sqlx::PgPool;
 
 use crate::configuration::AuthSettings;
 use crate::domain::{User, UserId, UserRole};
+use crate::session_store::PostgresSessionStore;
 
 pub(crate) type AuthContext =
     axum_login::extractors::AuthContext<UserId, User, AuthUserStore, UserRole>;
-
+pub(crate) type SessionStore = PostgresSessionStore;
 pub(crate) type RequireAuth = RequireAuthorizationLayer<UserId, User, UserRole>;
 pub(crate) type AuthUserStore = PostgresStore<User, UserRole>;
 pub(crate) type AuthLayer = AxumAuthLayer<AuthUserStore, UserId, User, UserRole>;
-pub(crate) type SessionLayer = AxumSessionLayer<MemoryStore>;
+pub(crate) type SessionLayer = AxumSessionLayer<SessionStore>;
 
-pub(crate) fn setup_auth(
+pub(crate) async fn setup_auth(
     db_pool: PgPool,
     configuration: &AuthSettings,
 ) -> (AuthLayer, SessionLayer) {
     let user_store = PostgresStore::new(db_pool.clone());
-    let session_store = MemoryStore::new();
+    let session_store = PostgresSessionStore::new(db_pool.clone(), "sessions");
+
+    session_store
+        .migrate()
+        .await
+        .expect("Failed to migrate session store database");
+
     let secret = configuration
         .session_secret
         .expose_secret()
