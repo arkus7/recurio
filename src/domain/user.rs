@@ -36,9 +36,15 @@ impl Password {
 pub(crate) struct PasswordHash(String);
 
 impl PasswordHash {
-    fn to_argon_hash(&self) -> ArgonPasswordHash<'_> {
+    fn argon_hash(&self) -> ArgonPasswordHash<'_> {
         ArgonPasswordHash::new(self.0.as_str())
             .expect("failed to convert PasswordHash into ArgonPasswordHash")
+    }
+}
+
+impl AsRef<str> for PasswordHash {
+    fn as_ref(&self) -> &str {
+        &self.0
     }
 }
 
@@ -55,13 +61,25 @@ impl sqlx::Type<sqlx::Postgres> for PasswordHash {
     }
 }
 
-#[derive(Debug, Clone, sqlx::Type, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, sqlx::Encode, sqlx::Decode, serde::Serialize, serde::Deserialize)]
 #[repr(transparent)]
 pub(crate) struct UserId(uuid::Uuid);
+
+impl sqlx::Type<sqlx::Postgres> for UserId {
+    fn type_info() -> <sqlx::Postgres as sqlx::Database>::TypeInfo {
+        <uuid::Uuid as sqlx::Type<sqlx::Postgres>>::type_info()
+    }
+}
 
 impl From<Uuid> for UserId {
     fn from(value: Uuid) -> Self {
         Self(value)
+    }
+}
+
+impl From<UserId> for Uuid {
+    fn from(value: UserId) -> Self {
+        value.0
     }
 }
 
@@ -92,7 +110,7 @@ impl User {
 
     pub(crate) fn verify_password(&self, password: &str) -> bool {
         Argon2::default()
-            .verify_password(password.as_bytes(), &self.password_hash.to_argon_hash())
+            .verify_password(password.as_bytes(), &self.password_hash.argon_hash())
             .is_ok()
     }
 }
@@ -103,6 +121,15 @@ impl User {
 pub enum UserRole {
     User,
     Admin,
+}
+
+impl AsRef<str> for UserRole {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::User => "user",
+            Self::Admin => "admin",
+        }
+    }
 }
 
 // FIXME: Consider creating a enum in database instead of storing it in `TEXT`

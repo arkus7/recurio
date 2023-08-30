@@ -9,7 +9,7 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 use crate::{
     auth::{setup_auth, RequireAuth},
     configuration::{AuthSettings, DatabaseSettings, Settings},
-    routes::{create_service, health_check, login_handler, services_index},
+    routes::{create_service, health_check, login_handler, register_handler, services_index},
 };
 
 pub struct Application {
@@ -68,6 +68,7 @@ pub fn app(state: AppState, auth_config: &AuthSettings) -> Router {
 fn api_router(state: AppState) -> Router {
     Router::new()
         .route("/auth/login", post(login_handler))
+        .route("/auth/register", post(register_handler))
         .route("/services", get(services_index))
         .route(
             "/services",
