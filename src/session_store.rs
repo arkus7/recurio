@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use axum_login::axum_sessions::async_session::{Result, Session, SessionStore};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use sqlx::{Executor, PgPool};
 
 #[derive(Debug, Clone)]
@@ -37,7 +37,7 @@ impl PostgresSessionStore {
     }
 
     pub async fn count(&self) -> sqlx::Result<i64> {
-        let (count,) = sqlx::query_as(&*format!(
+        let (count,) = sqlx::query_as(&format!(
             "SELECT COUNT(*) FROM {table_name}",
             table_name = self.table_name
         ))
@@ -48,7 +48,7 @@ impl PostgresSessionStore {
     }
 
     pub async fn cleanup(&self) -> sqlx::Result<()> {
-        sqlx::query(&*format!(
+        sqlx::query(&format!(
             "DELETE FROM {table_name} WHERE expires < $1",
             table_name = self.table_name
         ))
@@ -65,7 +65,7 @@ impl SessionStore for PostgresSessionStore {
     async fn load_session(&self, cookie_value: String) -> Result<Option<Session>> {
         let id = Session::id_from_cookie_value(&cookie_value)?;
 
-        let result: Option<(String,)> = sqlx::query_as(&*format!(
+        let result: Option<(String,)> = sqlx::query_as(&format!(
             "SELECT session FROM {table_name} WHERE id = $1 AND (expires IS NULL OR expires > $2)",
             table_name = self.table_name
         ))
@@ -83,7 +83,7 @@ impl SessionStore for PostgresSessionStore {
         let id = session.id();
         let string = serde_json::to_string(&session)?;
 
-        sqlx::query(&*format!(
+        sqlx::query(&format!(
             r#"
             INSERT INTO {table_name}
               (id, session, expires) SELECT $1, $2, $3
@@ -93,9 +93,9 @@ impl SessionStore for PostgresSessionStore {
             "#,
             table_name = self.table_name
         ))
-        .bind(&id)
+        .bind(id)
         .bind(&string)
-        .bind(&session.expiry())
+        .bind(session.expiry())
         .execute(&self.database)
         .await?;
 
@@ -104,11 +104,11 @@ impl SessionStore for PostgresSessionStore {
 
     async fn destroy_session(&self, session: Session) -> Result {
         let id = session.id();
-        sqlx::query(&*format!(
+        sqlx::query(&format!(
             "DELETE FROM {table_name} WHERE id = $1",
             table_name = self.table_name
         ))
-        .bind(&id)
+        .bind(id)
         .execute(&self.database)
         .await?;
 
@@ -116,7 +116,7 @@ impl SessionStore for PostgresSessionStore {
     }
 
     async fn clear_store(&self) -> Result {
-        sqlx::query(&*format!(
+        sqlx::query(&format!(
             "TRUNCATE {table_name}",
             table_name = self.table_name
         ))
@@ -132,6 +132,7 @@ mod tests {
     use crate::configuration::get_configuration;
 
     use super::*;
+    use chrono::DateTime;
     use std::time::Duration;
 
     async fn create_db_for_tests() -> PgPool {
@@ -142,7 +143,7 @@ mod tests {
 
         let db_name = uuid::Uuid::new_v4().to_string().replace('-', "");
         let db_name = format!("test_sessions_{db_name}");
-        sqlx::query(&*format!("CREATE DATABASE {db_name}"))
+        sqlx::query(&format!("CREATE DATABASE {db_name}"))
             .execute(&pool)
             .await
             .expect("Failed to create db for tests");
@@ -227,13 +228,13 @@ mod tests {
         let mut session = Session::new();
         session.expire_in(Duration::from_secs(10));
         let original_id = session.id().to_owned();
-        let original_expires = session.expiry().unwrap().clone();
+        let original_expires = *session.expiry().unwrap();
         let cookie_value = store.store_session(session).await?.unwrap();
 
         let mut session = store.load_session(cookie_value.clone()).await?.unwrap();
         assert_eq!(session.expiry().unwrap(), &original_expires);
         session.expire_in(Duration::from_secs(20));
-        let new_expires = session.expiry().unwrap().clone();
+        let new_expires = *session.expiry().unwrap();
         store.store_session(session).await?;
 
         let session = store.load_session(cookie_value.clone()).await?.unwrap();
