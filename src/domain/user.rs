@@ -24,7 +24,7 @@ impl Password {
     pub(crate) fn hash(&self) -> Result<PasswordHash, String> {
         let salt = SaltString::generate(&mut OsRng);
         let hash = Argon2::default()
-            .hash_password(&self.0.as_bytes(), &salt)
+            .hash_password(self.0.as_bytes(), &salt)
             .map_err(|e| e.to_string())?
             .to_string();
         Ok(PasswordHash(hash))

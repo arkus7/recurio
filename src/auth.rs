@@ -1,19 +1,12 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
-use axum::async_trait;
-use axum_login::axum_sessions::async_session::{MemoryStore, Session, SessionStore};
+use axum_login::axum_sessions::async_session::MemoryStore;
 use axum_login::PostgresStore;
 
 use axum_login::{
     axum_sessions::SessionLayer as AxumSessionLayer, AuthLayer as AxumAuthLayer,
-    RequireAuthorizationLayer, UserStore,
+    RequireAuthorizationLayer,
 };
 use secrecy::ExposeSecret;
 use sqlx::PgPool;
-use tokio::sync::RwLock;
-use tracing::debug;
-use uuid::Uuid;
 
 use crate::configuration::AuthSettings;
 use crate::domain::{User, UserId, UserRole};
@@ -30,7 +23,6 @@ pub(crate) fn setup_auth(
     db_pool: PgPool,
     configuration: &AuthSettings,
 ) -> (AuthLayer, SessionLayer) {
-    // let user_store = DatabaseUserStore::new(db_pool.clone());
     let user_store = PostgresStore::new(db_pool.clone());
     let session_store = MemoryStore::new();
     let secret = configuration
