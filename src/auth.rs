@@ -16,14 +16,14 @@ use tracing::debug;
 use uuid::Uuid;
 
 use crate::configuration::AuthSettings;
-use crate::domain::{User, UserRole};
+use crate::domain::{User, UserId, UserRole};
 
 pub(crate) type AuthContext =
-    axum_login::extractors::AuthContext<uuid::Uuid, User, AuthUserStore, UserRole>;
+    axum_login::extractors::AuthContext<UserId, User, AuthUserStore, UserRole>;
 
-pub(crate) type RequireAuth = RequireAuthorizationLayer<uuid::Uuid, User, UserRole>;
+pub(crate) type RequireAuth = RequireAuthorizationLayer<UserId, User, UserRole>;
 pub(crate) type AuthUserStore = PostgresStore<User, UserRole>;
-pub(crate) type AuthLayer = AxumAuthLayer<AuthUserStore, Uuid, User, UserRole>;
+pub(crate) type AuthLayer = AxumAuthLayer<AuthUserStore, UserId, User, UserRole>;
 pub(crate) type SessionLayer = AxumSessionLayer<MemoryStore>;
 
 pub(crate) fn setup_auth(
@@ -45,108 +45,73 @@ pub(crate) fn setup_auth(
     (auth_layer, session_layer)
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct DatabaseUserStore {
-    pool: PgPool,
-    query: String,
-    session_store: Arc<RwLock<HashMap<String, Session>>>,
-}
-
-impl DatabaseUserStore {
-    pub(crate) fn new(pool: PgPool) -> Self {
-        Self {
-            pool,
-            query: "select * from users where id = $1".into(),
-            session_store: Arc::new(RwLock::new(HashMap::new())),
-        }
-    }
-}
-
-#[async_trait]
-impl UserStore<uuid::Uuid, UserRole> for DatabaseUserStore {
-    type User = User;
-    type Error = sqlx::error::Error;
-
-    async fn load_user(&self, user_id: &uuid::Uuid) -> Result<Option<Self::User>, Self::Error> {
-        tracing::debug!("Verifying user with ID {}", user_id);
-        let user: Option<User> = sqlx::query_as(&self.query)
-            .bind(user_id)
-            .fetch_optional(&self.pool)
-            .await?;
-
-        tracing::debug!("Found user: {:?}", &user);
-
-        Ok(user)
-    }
-}
-
-#[async_trait]
-impl SessionStore for DatabaseUserStore {
-    /// Get a session from the storage backend.
-    ///
-    /// The input is expected to be the value of an identifying
-    /// cookie. This will then be parsed by the session middleware
-    /// into a session if possible
-    async fn load_session(
-        &self,
-        cookie_value: String,
-    ) -> Result<Option<Session>, axum_login::axum_sessions::async_session::Error> {
-        debug!("load_session, cookie value: {}", cookie_value);
-        dbg!("session_store", &self.session_store);
-        let id = Session::id_from_cookie_value(&cookie_value)?;
-        debug!("cookie ID: {id}");
-        Ok(self
-            .session_store
-            .read()
-            .await
-            .get(&id)
-            .cloned()
-            .map(|s| {
-                debug!("before validation, session: {:?}", s);
-                s
-            })
-            .and_then(Session::validate)
-            .map(|s| {
-                debug!("after validation, session: {:?}", s);
-                s
-            }))
-    }
-
-    /// Store a session on the storage backend.
-    ///
-    /// The return value is the value of the cookie to store for the
-    /// user that represents this session
-    async fn store_session(
-        &self,
-        session: Session,
-    ) -> Result<Option<String>, axum_login::axum_sessions::async_session::Error> {
-        debug!("store_session, session value: {:?}", session);
-        dbg!("session_store before store", &self.session_store);
-
-        self.session_store
-            .write()
-            .await
-            .insert(session.id().to_string(), session.clone());
-
-        dbg!("session_store after store", &self.session_store);
-        session.reset_data_changed();
-        Ok(session.into_cookie_value())
-    }
-
-    /// Remove a session from the session store
-    async fn destroy_session(
-        &self,
-        session: Session,
-    ) -> Result<(), axum_login::axum_sessions::async_session::Error> {
-        debug!("destroy_session");
-        dbg!("session to destroy", &session);
-        self.session_store.write().await.remove(session.id());
-        Ok(())
-    }
-
-    /// Empties the entire store, destroying all sessions
-    async fn clear_store(&self) -> Result<(), axum_login::axum_sessions::async_session::Error> {
-        debug!("clear_store");
-        Ok(())
-    }
-}
+// #[async_trait]
+// impl SessionStore for DatabaseUserStore {
+//     /// Get a session from the storage backend.
+//     ///
+//     /// The input is expected to be the value of an identifying
+//     /// cookie. This will then be parsed by the session middleware
+//     /// into a session if possible
+//     async fn load_session(
+//         &self,
+//         cookie_value: String,
+//     ) -> Result<Option<Session>, axum_login::axum_sessions::async_session::Error> {
+//         debug!("load_session, cookie value: {}", cookie_value);
+//         dbg!("session_store", &self.session_store);
+//         let id = Session::id_from_cookie_value(&cookie_value)?;
+//         debug!("cookie ID: {id}");
+//         Ok(self
+//             .session_store
+//             .read()
+//             .await
+//             .get(&id)
+//             .cloned()
+//             .map(|s| {
+//                 debug!("before validation, session: {:?}", s);
+//                 s
+//             })
+//             .and_then(Session::validate)
+//             .map(|s| {
+//                 debug!("after validation, session: {:?}", s);
+//                 s
+//             }))
+//     }
+//
+//     /// Store a session on the storage backend.
+//     ///
+//     /// The return value is the value of the cookie to store for the
+//     /// user that represents this session
+//     async fn store_session(
+//         &self,
+//         session: Session,
+//     ) -> Result<Option<String>, axum_login::axum_sessions::async_session::Error> {
+//         debug!("store_session, session value: {:?}", session);
+//         dbg!("session_store before store", &self.session_store);
+//
+//         self.session_store
+//             .write()
+//             .await
+//             .insert(session.id().to_string(), session.clone());
+//
+//         dbg!("session_store after store", &self.session_store);
+//         session.reset_data_changed();
+//         Ok(session.into_cookie_value())
+//     }
+//
+//     /// Remove a session from the session store
+//     async fn destroy_session(
+//         &self,
+//         session: Session,
+//     ) -> Result<(), axum_login::axum_sessions::async_session::Error> {
+//         debug!("destroy_session");
+//         dbg!("session to destroy", &session);
+//         self.session_store.write().await.remove(session.id());
+//         Ok(())
+//     }
+//
+//     /// Empties the entire store, destroying all sessions
+//     async fn clear_store(&self) -> Result<(), axum_login::axum_sessions::async_session::Error> {
+//         debug!("clear_store");
+//         Ok(())
+//     }
+// }
