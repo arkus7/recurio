@@ -38,7 +38,7 @@ impl Application {
             database: connection_pool.clone(),
         };
 
-        let router = app(state, &configuration.auth);
+        let router = app(state, &configuration.auth).await;
 
         Ok(Self { port, router })
     }
@@ -52,10 +52,10 @@ impl Application {
     }
 }
 
-pub fn app(state: AppState, auth_config: &AuthSettings) -> Router {
+pub async fn app(state: AppState, auth_config: &AuthSettings) -> Router {
     let AppState { database } = state.clone();
 
-    let (auth_layer, session_layer) = setup_auth(database, auth_config);
+    let (auth_layer, session_layer) = setup_auth(database, auth_config).await;
 
     Router::new()
         .nest("/api", api_router(state))
