@@ -9,6 +9,9 @@ pub struct Service {
     pub created_at: DateTime<Utc>,
 }
 
+#[derive(Debug, serde::Serialize)]
+pub struct ServiceId(Uuid);
+
 pub struct NewService {
     pub name: ServiceName,
 }

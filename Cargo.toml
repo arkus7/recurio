@@ -15,6 +15,7 @@ axum-login = { git = "https://github.com/maxcountryman/axum-login", branch = "ma
 chrono = { version = "0.4.26", features = ["serde"] }
 config = "0.13.3"
 hyper = { version = "0.14.27", features = ["full"] }
+iso_currency = { version = "0.4.4", features = ["serde", "with-serde"] }
 secrecy = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.188", features = ["derive"] }
 serde-aux = "4.2.0"
