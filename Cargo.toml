@@ -10,8 +10,8 @@ argon2 = "0.5.1"
 async-trait = "0.1.73"
 axum = { version = "0.6.20", features = ["tracing", "macros"] }
 # axum-login = { version = "0.6.0", features = ["sqlx", "postgres"] }
-# unreleased with support for sqlx 0.7
-axum-login = { git = "https://github.com/maxcountryman/axum-login", branch = "main", features = ["sqlx", "postgres"] }
+# Pin to a known-good git revision that supports SQLx integration
+axum-login = { git = "https://github.com/maxcountryman/axum-login", rev = "bb7e5d32100bb6846412cee1f26851cc47397991", features = ["sqlx", "postgres"] }
 chrono = { version = "0.4.26", features = ["serde"] }
 config = "0.13.3"
 hyper = { version = "0.14.27", features = ["full"] }
