@@ -1,9 +1,9 @@
 use axum::{
-    body::BoxBody,
     extract::{ConnectInfo, MatchedPath},
     response::Response,
 };
-use hyper::{Body, Request};
+use axum::body::{Body, BoxBody};
+use axum::http::Request;
 use std::{net::SocketAddr, time::Duration};
 
 use tracing::Span;

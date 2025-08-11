@@ -9,12 +9,10 @@ edition = "2021"
 argon2 = "0.5.1"
 async-trait = "0.1.73"
 axum = { version = "0.6.20", features = ["tracing", "macros"] }
-# axum-login = { version = "0.6.0", features = ["sqlx", "postgres"] }
-# Pin to a known-good git revision that supports SQLx integration
+# Pin to a known-good git revision that exposes axum-sessions integration
 axum-login = { git = "https://github.com/maxcountryman/axum-login", rev = "bb7e5d32100bb6846412cee1f26851cc47397991", features = ["sqlx", "postgres"] }
 chrono = { version = "0.4.26", features = ["serde"] }
 config = "0.13.3"
-hyper = { version = "0.14.27", features = ["full"] }
 iso_currency = { version = "0.4.4", features = ["serde", "with-serde"] }
 secrecy = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.188", features = ["derive"] }
@@ -23,9 +21,9 @@ serde_json = "1.0.105"
 sqlx = { version = "0.7.1", features = ["runtime-tokio-rustls", "any", "postgres", "chrono", "uuid"] }
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
 tower = "0.4.13"
-tower-http = { version = "0.4.3", features = ["trace"] }
+tower-http = { version = "0.4.4", features = ["trace"] }
 tracing = "0.1.37"
-tracing-log = "0.1.3"
+tracing-log = "0.2"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 unicode-segmentation = "1.10.1"
 uuid = { version = "1.4.1", features = ["serde", "v4"] }

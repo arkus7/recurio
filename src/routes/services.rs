@@ -1,5 +1,4 @@
-use axum::{extract::State, Json};
-use hyper::StatusCode;
+use axum::{extract::State, http::StatusCode, Json};
 use sqlx::PgPool;
 
 use crate::{
