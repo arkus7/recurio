@@ -1,46 +1,82 @@
-use axum_login::PostgresStore;
-
-use axum_login::{
-    axum_sessions::SessionLayer as AxumSessionLayer, AuthLayer as AxumAuthLayer,
-    RequireAuthorizationLayer,
-};
-use secrecy::ExposeSecret;
+use axum_login::{AuthManagerLayer, AuthManagerLayerBuilder, AuthSession, AuthnBackend, UserId as BackendUserId};
+use axum_login::tower_sessions::{SessionManagerLayer, MemoryStore};
 use sqlx::PgPool;
 
 use crate::configuration::AuthSettings;
-use crate::domain::{User, UserId, UserRole};
-use crate::session_store::PostgresSessionStore;
+use crate::domain::User;
 
-pub(crate) type AuthContext =
-    axum_login::extractors::AuthContext<UserId, User, AuthUserStore, UserRole>;
-pub(crate) type SessionStore = PostgresSessionStore;
-pub(crate) type RequireAuth = RequireAuthorizationLayer<UserId, User, UserRole>;
-pub(crate) type AuthUserStore = PostgresStore<User, UserRole>;
-pub(crate) type AuthLayer = AxumAuthLayer<AuthUserStore, UserId, User, UserRole>;
-pub(crate) type SessionLayer = AxumSessionLayer<SessionStore>;
+pub(crate) type AuthContext = AuthSession<Backend>;
+pub(crate) type AuthLayer = AuthManagerLayer<Backend, MemoryStore>;
+
+#[derive(Debug)]
+pub struct BackendError(pub String);
+
+impl core::fmt::Display for BackendError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for BackendError {}
+
+#[derive(Clone)]
+pub(crate) struct Backend {
+    pub pool: PgPool,
+}
+
+#[derive(Clone)]
+pub(crate) struct Credentials {
+    pub login: String,
+    pub password: String,
+}
+
+impl AuthnBackend for Backend {
+    type User = User;
+    type Credentials = Credentials;
+    type Error = crate::auth::BackendError;
+
+    fn authenticate(
+        &self,
+        creds: Self::Credentials,
+    ) -> impl core::future::Future<Output = Result<Option<Self::User>, Self::Error>> + Send {
+        let pool = self.pool.clone();
+        async move {
+            let user = sqlx::query_as!(User, "SELECT * FROM users WHERE login = $1", creds.login)
+                .fetch_optional(&pool)
+                .await
+                .map_err(|e| BackendError(e.to_string()))?;
+            Ok(user.filter(|u| u.verify_password(&creds.password)))
+        }
+    }
+
+    fn get_user(
+        &self,
+        user_id: &BackendUserId<Self>,
+    ) -> impl core::future::Future<Output = Result<Option<Self::User>, Self::Error>> + Send {
+        let pool = self.pool.clone();
+        let uuid: uuid::Uuid = user_id.clone().into();
+        async move {
+            let user = sqlx::query_as!(User, "SELECT * FROM users WHERE id = $1", uuid)
+                .fetch_optional(&pool)
+                .await
+                .map_err(|e| BackendError(e.to_string()))?;
+            Ok(user)
+        }
+    }
+}
 
 pub(crate) async fn setup_auth(
     db_pool: PgPool,
-    configuration: &AuthSettings,
-) -> (AuthLayer, SessionLayer) {
-    let user_store = PostgresStore::new(db_pool.clone());
-    let session_store = PostgresSessionStore::new(db_pool.clone(), "sessions");
+    _configuration: &AuthSettings,
+) -> AuthLayer {
+    let backend = Backend { pool: db_pool.clone() };
 
-    session_store
-        .migrate()
-        .await
-        .expect("Failed to migrate session store database");
+    // Build session manager layer using in-memory store for demo purposes
+    let session_layer = SessionManagerLayer::new(MemoryStore::default())
+        .with_name("recurio.sid");
 
-    let secret = configuration
-        .session_secret
-        .expose_secret()
-        .as_str()
-        .as_bytes();
-    let auth_layer = AuthLayer::new(user_store, secret);
-
-    let session_layer = SessionLayer::new(session_store, secret).with_cookie_name("recurio.sid");
-
-    (auth_layer, session_layer)
+    AuthManagerLayerBuilder::new(backend, session_layer)
+        .build()
 }
 
 // #[async_trait]

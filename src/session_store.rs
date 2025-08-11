@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use axum_login::axum_sessions::async_session::{Result, Session, SessionStore};
+use async_session::{Result, Session, SessionStore};
 use chrono::Utc;
 use sqlx::{Executor, PgPool};
 

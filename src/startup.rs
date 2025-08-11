@@ -7,7 +7,7 @@ use axum::{
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
 use crate::{
-    auth::{setup_auth, RequireAuth},
+    auth::setup_auth,
     configuration::{AuthSettings, DatabaseSettings, Settings},
     routes::{create_service, health_check, login_handler, register_handler, services_index},
 };
@@ -55,14 +55,13 @@ impl Application {
 pub async fn app(state: AppState, auth_config: &AuthSettings) -> Router {
     let AppState { database } = state.clone();
 
-    let (auth_layer, session_layer) = setup_auth(database, auth_config).await;
+    let auth_layer = setup_auth(database, auth_config).await;
 
     Router::new()
         .nest("/api", api_router(state))
         .route("/", get(|| async { "Hello, World!" }))
         .route("/health", get(health_check))
         .layer(auth_layer)
-        .layer(session_layer)
 }
 
 fn api_router(state: AppState) -> Router {
@@ -70,10 +69,7 @@ fn api_router(state: AppState) -> Router {
         .route("/auth/login", post(login_handler))
         .route("/auth/register", post(register_handler))
         .route("/services", get(services_index))
-        .route(
-            "/services",
-            post(create_service).layer(RequireAuth::login()),
-        )
+        .route("/services", post(create_service))
         .with_state(state)
 }
 

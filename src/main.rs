@@ -1,6 +1,7 @@
 use std::net::SocketAddr;
 
-use axum::Router;
+use axum::{Router, serve};
+use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 
 use recurio::{configuration, startup::Application, telemetry};
@@ -24,8 +25,8 @@ async fn main() -> std::io::Result<()> {
     // run it on localhost:3000
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     tracing::info!("listening on {}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+    let listener = TcpListener::bind(addr).await.unwrap();
+    serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
 

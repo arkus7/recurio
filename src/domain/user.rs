@@ -83,6 +83,12 @@ impl From<UserId> for Uuid {
     }
 }
 
+impl std::fmt::Display for UserId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Debug, Clone, FromRow, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct User {
@@ -150,16 +156,14 @@ impl sqlx::Type<sqlx::Postgres> for UserRole {
     }
 }
 
-impl AuthUser<UserId, UserRole> for User {
-    fn get_id(&self) -> UserId {
+impl AuthUser for User {
+    type Id = UserId;
+
+    fn id(&self) -> Self::Id {
         self.id.clone()
     }
 
-    fn get_password_hash(&self) -> SecretVec<u8> {
-        SecretVec::new(self.password_hash.0.clone().into())
-    }
-
-    fn get_role(&self) -> Option<UserRole> {
-        Some(self.role.clone())
+    fn session_auth_hash(&self) -> &[u8] {
+        self.password_hash.0.as_bytes()
     }
 }

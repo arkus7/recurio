@@ -2,7 +2,7 @@ use axum::{
     extract::{ConnectInfo, MatchedPath},
     response::Response,
 };
-use axum::body::{Body, BoxBody};
+use axum::body::Body;
 use axum::http::Request;
 use std::{net::SocketAddr, time::Duration};
 
@@ -67,7 +67,7 @@ pub fn trace_layer_on_request(request: &Request<Body>, span: &Span) {
     span.record("req.headers", tracing::field::debug(request.headers()));
 }
 
-pub fn trace_layer_on_response(response: &Response<BoxBody>, latency: Duration, span: &Span) {
+pub fn trace_layer_on_response(response: &Response<Body>, latency: Duration, span: &Span) {
     span.record(
         "latency",
         tracing::field::display(format!("{}ms", latency.as_millis())),

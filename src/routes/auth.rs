@@ -2,7 +2,7 @@ use axum::{extract::State, http::StatusCode, Json};
 use sqlx::PgPool;
 
 use crate::{
-    auth::AuthContext,
+    auth::{AuthContext, Credentials},
     domain::{Password, User},
     startup::AppState,
 };
@@ -19,21 +19,14 @@ pub(crate) async fn login_handler(
     mut auth: AuthContext,
     Json(input): Json<LoginInput>,
 ) -> Result<Json<User>, StatusCode> {
-    let user = find_user_by_login(&database, &input.login)
+    let creds = Credentials { login: input.login.clone(), password: input.password.clone() };
+    let user = auth
+        .authenticate(creds)
         .await
-        .map_err(|e| {
-            tracing::error!(e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
-    if !user.verify_password(&input.password) {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
-
-    auth.login(&user).await.unwrap();
-
-    dbg!(&auth.current_user);
+    auth.login(&user).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(user))
 }

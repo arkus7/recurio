@@ -8,9 +8,11 @@ edition = "2021"
 [dependencies]
 argon2 = "0.5.1"
 async-trait = "0.1.73"
-axum = { version = "0.6.20", features = ["tracing", "macros"] }
-# Pin to a known-good git revision that exposes axum-sessions integration
-axum-login = { git = "https://github.com/maxcountryman/axum-login", rev = "bb7e5d32100bb6846412cee1f26851cc47397991", features = ["sqlx", "postgres"] }
+axum = { version = "0.8", features = ["tracing", "macros"] }
+# axum-login 0.18 supports axum 0.7 and tower-sessions
+axum-login = { version = "0.18" }
+async-session = { version = "3" }
+anyhow = "1"
 chrono = { version = "0.4.26", features = ["serde"] }
 config = "0.13.3"
 iso_currency = { version = "0.4.4", features = ["serde", "with-serde"] }
@@ -21,7 +23,9 @@ serde_json = "1.0.105"
 sqlx = { version = "0.7.1", features = ["runtime-tokio-rustls", "any", "postgres", "chrono", "uuid"] }
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
 tower = "0.4.13"
-tower-http = { version = "0.4.4", features = ["trace"] }
+tower-http = { version = "0.6", features = ["trace"] }
+tower-sessions = { version = "0.14", features = ["memory-store"] }
+# tower-sessions can be added later if we migrate from custom store
 tracing = "0.1.37"
 tracing-log = "0.2"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
